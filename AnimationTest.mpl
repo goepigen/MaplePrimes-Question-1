@@ -146,13 +146,14 @@ AnimationTest := module()
 		return l;
 	end;
 
-    export createFileName := proc(step, Np, N)
-        return cat(animationsDir, "/", step, ".", Np, ".", N, ".m"):
+    export createFileName := proc(step, Np, N, elapsedTime)
+        return cat(animationsDir, "/", step, ".", Np, ".", N, ".", elapsedTime, ".m"):
     end;
 
 	export animate := proc(step, Np, N, saveToFile)
-		local Stot, q1, animationData, Anim, exportFile, j:
+		local Stot, q1, animationData, Anim, exportFile, j, t, elapsedTime:
 
+		t := time[real]();
 		Stot := computeAverage(step, Np, N):
 
 		q1 := Matrix(Stot):
@@ -171,8 +172,9 @@ AnimationTest := module()
 			axes = boxed, 
 			insequence = true):
 
+		elapsedTime := time[real]()-t;
         if saveToFile then
-			exportFile := createFileName(step, Np, N):
+			exportFile := createFileName(step, Np, N, floor(elapsedTime)):
             save Anim, exportFile:
         end:
 
@@ -198,7 +200,7 @@ AnimationTest := module()
 		times := [seq(1 .. finalTime, 1)];
 		windowSize := 1000;
 		parrow := [seq(m2(q1, t, red), t = times)]:
-		ptrail := [seq(m1(q1, t, windowSize, blue), t = times)]:
+		ptrail := [seq(m1(q1, t, windowSize, red), t = times)]:
 		psphere := plottools:-sphere([0, 0, 0], 1, transparency = 0.9);
 		return [ptrail, parrow, psphere]:	
 	end:	
@@ -208,4 +210,4 @@ AnimationTest := module()
 	end: 
 end:
 
-LibraryTools:-Save('AnimationTest', mlaPath);
+# LibraryTools:-Save('AnimationTest', mlaPath);
