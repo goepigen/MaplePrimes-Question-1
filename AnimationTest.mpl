@@ -6,7 +6,11 @@ AnimationTest := module()
     export NumberGenerator:
     
     export mlaPath := cat(kernelopts(homedir),"/maple/Packages/AnimationTest/AnimationTest.mla"):
+    export animationsDir := cat(kernelopts(homedir), "/maple/Packages/AnimationTest/Animations"):
 
+    # This object is used to generate random numbers given an argument t. 
+    # Each pair (t, randomNumber) is saved in a table.
+    # Used for generating random numbers to pass in to dsolve.
     module NumberGenerator()
 	    option object;
 
@@ -106,8 +110,6 @@ AnimationTest := module()
 
         eqsyscomplex := diffEqs():
 
-        print(eqsyscomplex, seedn, step, Np, test());
-
         p := dsolve(
             {eqsyscomplex, f(0)=1, g(0)=0}, 
             fcns, 
@@ -144,8 +146,12 @@ AnimationTest := module()
 		return l;
 	end;
 
-	export animate := proc(step, Np, N)
-		local Stot, q1, animationData;
+    export createFileName := proc(step, Np, N)
+        return cat(animationsDir, "/", step, ".", Np, ".", N, ".m"):
+    end;
+
+	export animate := proc(step, Np, N, saveToFile)
+		local Stot, q1, animationData, Anim, exportFile, j:
 
 		Stot := computeAverage(step, Np, N):
 
@@ -153,29 +159,46 @@ AnimationTest := module()
 
 		animationData := computeAnimationData(q1):
 
-		displayAnimation(seq(animationData));
+		Anim := plots:-display
+			([seq
+				(plots:-display
+					([animationData[3], 
+					animationData[1][j], 
+					animationData[2][j]
+					]), 
+				j = 1 .. numelems(animationData[1]))], 
+			scaling = constrained, 
+			axes = boxed, 
+			insequence = true):
+
+        if saveToFile then
+			exportFile := createFileName(step, Np, N):
+            save Anim, exportFile:
+        end:
+
+		Anim;
 	end;
 
 	export computeAnimationData := proc(q1)
-		local windowSize, parrow, ptrail, finalTime, times, psphere, m1, m2;
+		local windowSize, parrow, ptrail, finalTime, times, psphere, m1, m2, t;
 
-		m1 := proc(q1, t, windowSize) 
+		m1 := proc(q1, t, windowSize, trailColor) 
 			# for the number of points less than or equal to windowSize, the window size equals the number of points
 			if t <= windowSize then 
-				return plots:-pointplot3d(q1[1 .. t, () .. ()], connect = true); 
+				return plots:-pointplot3d(q1[1 .. t, () .. ()], connect = true, color=trailColor); 
 			end if; 
 			
 			# after the windowSize-th point, the window size is fixed at windowSize
 			return plots:-pointplot3d(q1[t - windowSize + 1 .. t, () .. ()], connect = true); 
 		end;
 
-		m2 := proc(q1, t) return plots:-arrow([[0, 0, 0], q1[t]]); end;
+		m2 := proc(q1, t, arrowColor) return plots:-arrow([[0, 0, 0], q1[t]], color=arrowColor); end;
 
 		finalTime := LinearAlgebra:-Dimensions(q1)[1];
 		times := [seq(1 .. finalTime, 1)];
 		windowSize := 1000;
-		parrow := plots:-animate(m2, [q1, t], t = times, view = [-1 .. 1, -1 .. 1, -1 .. 1], color = red);
-		ptrail := plots:-animate(m1, [q1, t, windowSize], t = [seq(1 .. finalTime)], color = red);
+		parrow := [seq(m2(q1, t, red), t = times)]:
+		ptrail := [seq(m1(q1, t, windowSize, blue), t = times)]:
 		psphere := plottools:-sphere([0, 0, 0], 1, transparency = 0.9);
 		return [ptrail, parrow, psphere]:	
 	end:	
