@@ -178,7 +178,7 @@ AnimationTest := module()
             save Anim, exportFile:
         end:
 
-		Anim;
+		displayAnimation(seq(animationData))
 	end;
 
 	export computeAnimationData := proc(q1)
